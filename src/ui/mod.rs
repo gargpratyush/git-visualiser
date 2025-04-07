@@ -1,53 +1,26 @@
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
+    style::{Color, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, Paragraph, Clear},
-    Frame, Terminal,
+    widgets::{Block, Borders, List, ListItem, Paragraph},
+    Frame,
 };
-use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
-    execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-};
-use std::{io, time::Duration};
 use std::collections::VecDeque;
 use crate::models::CommitInfo;
 
 pub struct App {
     pub commits: VecDeque<CommitInfo>,
     pub selected_index: usize,
-    pub author_filter: Option<String>,
     pub current_branch: String,
     pub branches: Vec<String>,
-    pub search_mode: bool,
-    pub search_query: String,
     pub show_author_filter: bool,
     pub show_branch_selector: bool,
     pub branch_selector_index: usize,
 }
 
 impl App {
-    pub fn new() -> Self {
-        App {
-            commits: VecDeque::new(),
-            selected_index: 0,
-            author_filter: None,
-            current_branch: String::from("main"),
-            branches: Vec::new(),
-            search_mode: false,
-            search_query: String::new(),
-            show_author_filter: false,
-            show_branch_selector: false,
-            branch_selector_index: 0,
-        }
-    }
-
     pub fn toggle_author_filter(&mut self) {
         self.show_author_filter = !self.show_author_filter;
-        if self.show_author_filter {
-            // TODO: Implement author filter selection
-        }
     }
 
     pub fn toggle_branch_selector(&mut self) {
@@ -77,10 +50,6 @@ impl App {
         }
     }
 
-    pub fn start_search(&mut self) {
-        self.search_mode = true;
-    }
-
     pub fn navigate_up(&mut self) {
         if self.selected_index > 0 {
             self.selected_index -= 1;
@@ -91,14 +60,6 @@ impl App {
         if self.selected_index < self.commits.len().saturating_sub(1) {
             self.selected_index += 1;
         }
-    }
-
-    pub fn navigate_left(&mut self) {
-        // TODO: Implement left navigation
-    }
-
-    pub fn navigate_right(&mut self) {
-        // TODO: Implement right navigation
     }
 }
 
@@ -166,8 +127,7 @@ fn draw_branch_selector(f: &mut Frame, app: &App, area: Rect) {
     f.render_widget(list, area);
 }
 
-fn draw_author_filter(f: &mut Frame, app: &App, area: Rect) {
-    // TODO: Implement author filter UI
+fn draw_author_filter(f: &mut Frame, _app: &App, area: Rect) {
     let paragraph = Paragraph::new("Author filter (not implemented yet)")
         .block(Block::default().title("Author Filter").borders(Borders::ALL));
 

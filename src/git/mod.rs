@@ -75,32 +75,15 @@ impl GitManager {
     }
 
     pub fn get_branches(&self) -> Result<Vec<String>> {
-        let branches = self.repo.branches(Some(BranchType::Local))?;
-        let mut branch_names = Vec::new();
-
-        for branch in branches {
+        let mut branches = Vec::new();
+        
+        for branch in self.repo.branches(Some(git2::BranchType::Local))? {
             let (branch, _) = branch?;
             if let Some(name) = branch.name()? {
-                branch_names.push(name.to_string());
+                branches.push(name.to_string());
             }
         }
-
-        Ok(branch_names)
-    }
-
-    pub fn get_authors(&self) -> Result<Vec<String>> {
-        let mut authors = std::collections::HashSet::new();
-        let mut revwalk = self.repo.revwalk()?;
-        revwalk.push_glob("refs/heads/*")?;
-
-        for oid in revwalk {
-            let commit = self.repo.find_commit(oid?)?;
-            let author = commit.author();
-            if let Some(name) = author.name() {
-                authors.insert(name.to_string());
-            }
-        }
-
-        Ok(authors.into_iter().collect())
+        
+        Ok(branches)
     }
 } 

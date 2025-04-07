@@ -13,12 +13,10 @@ use ratatui::{
     Terminal,
 };
 use std::io;
-use std::path::PathBuf;
 use std::collections::VecDeque;
 use std::time::{Duration, Instant};
 use crate::ui::App;
 use crate::git::GitManager;
-use crate::models::CommitInfo;
 
 fn main() -> Result<()> {
     // Setup terminal
@@ -72,15 +70,6 @@ fn main() -> Result<()> {
     
     println!("Using branch: {}", current_branch);
     
-    // Get authors
-    let authors = match git_manager.get_authors() {
-        Ok(authors) => authors,
-        Err(e) => {
-            println!("Error: Failed to get authors: {}", e);
-            return Ok(());
-        }
-    };
-    
     // Get commits
     let commits = match git_manager.get_commits(&current_branch) {
         Ok(commits) => {
@@ -100,11 +89,8 @@ fn main() -> Result<()> {
     let mut app = App {
         commits: VecDeque::from(commits),
         selected_index: 0,
-        author_filter: None,
         current_branch,
         branches,
-        search_mode: false,
-        search_query: String::new(),
         show_author_filter: false,
         show_branch_selector: false,
         branch_selector_index: 0,
@@ -127,23 +113,26 @@ fn main() -> Result<()> {
                     KeyCode::Char('q') => break,
                     KeyCode::Char('a') => app.toggle_author_filter(),
                     KeyCode::Char('b') => app.toggle_branch_selector(),
-                    KeyCode::Char('/') => app.start_search(),
                     KeyCode::Up => {
                         if app.show_branch_selector {
                             app.navigate_branch_selector(-1);
+                        } else if app.show_author_filter {
+                            // Author filter navigation (not implemented yet)
                         } else {
+                            // Simply navigate to the previous commit
                             app.navigate_up();
                         }
                     },
                     KeyCode::Down => {
                         if app.show_branch_selector {
                             app.navigate_branch_selector(1);
+                        } else if app.show_author_filter {
+                            // Author filter navigation (not implemented yet)
                         } else {
+                            // Simply navigate to the next commit
                             app.navigate_down();
                         }
                     },
-                    KeyCode::Left => app.navigate_left(),
-                    KeyCode::Right => app.navigate_right(),
                     KeyCode::Enter => {
                         if app.show_branch_selector {
                             if app.select_branch(app.branch_selector_index) {
