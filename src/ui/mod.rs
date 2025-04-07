@@ -219,14 +219,86 @@ fn draw_commit_details(f: &mut Frame, app: &App, area: Rect) {
     let commit = app.commits.get(app.selected_index);
     
     let content = if let Some(commit) = commit {
-        format!(
-            "Hash: {}\nAuthor: {}\nDate: {}\n\nMessage:\n{}\n\nDiff:\n{}",
-            commit.hash,
-            commit.author,
-            commit.date,
-            commit.message,
-            commit.diff.as_deref().unwrap_or("No diff available")
-        )
+        let mut lines = vec![
+            format!("Hash: {}", commit.hash),
+            format!("Author: {}", commit.author),
+            format!("Date: {}", commit.date),
+            String::new(),
+            format!("Message:\n{}", commit.message),
+            String::new(),
+            "Changed Files:".to_string(),
+        ];
+
+        if let Some(diff) = &commit.diff {
+            // Parse the diff to extract file names and change statistics
+            let mut current_file = String::new();
+            let mut insertions = 0;
+            let mut deletions = 0;
+            let mut file_changes = Vec::new();
+            let mut in_file_section = false;
+            
+            for line in diff.lines() {
+                if line.starts_with("diff --git") {
+                    // Save previous file stats if we have them
+                    if !current_file.is_empty() {
+                        file_changes.push((current_file.clone(), insertions, deletions));
+                        insertions = 0;
+                        deletions = 0;
+                    }
+                    
+                    // Extract the new file name
+                    if let Some(file_part) = line.split(" b/").nth(1) {
+                        current_file = file_part.to_string();
+                    }
+                    in_file_section = false;
+                } else if line.starts_with("@@") {
+                    in_file_section = true;
+                } else if in_file_section {
+                    if line.starts_with("+") && !line.starts_with("+++") {
+                        insertions += 1;
+                    } else if line.starts_with("-") && !line.starts_with("---") {
+                        deletions += 1;
+                    }
+                }
+            }
+            
+            // Add the last file's stats
+            if !current_file.is_empty() {
+                file_changes.push((current_file, insertions, deletions));
+            }
+            
+            // If we couldn't parse the diff properly, show a message
+            if file_changes.is_empty() {
+                lines.push("Unable to parse diff information".to_string());
+            } else {
+                // Add each file with its change statistics
+                for (file, ins, del) in file_changes {
+                    let change_type = if ins > 0 && del > 0 {
+                        "modified"
+                    } else if ins > 0 {
+                        "added"
+                    } else if del > 0 {
+                        "deleted"
+                    } else {
+                        "renamed"
+                    };
+
+                    let status_style = match change_type {
+                        "modified" => Style::default().fg(Color::Yellow),
+                        "added" => Style::default().fg(Color::Green),
+                        "deleted" => Style::default().fg(Color::Red),
+                        _ => Style::default().fg(Color::Blue),
+                    };
+
+                    lines.push(format!("{:<8} {} (+{}, -{})", 
+                        change_type, file, ins, del));
+                }
+            }
+        } else {
+            lines.push("No diff available".to_string());
+        }
+
+        lines.join("\n")
     } else {
         String::from("No commit selected")
     };
