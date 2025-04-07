@@ -1,6 +1,5 @@
 mod ui;
 mod git;
-mod cache;
 mod models;
 
 use anyhow::{Result, Context};
@@ -19,7 +18,6 @@ use std::collections::VecDeque;
 use std::time::{Duration, Instant};
 use crate::ui::App;
 use crate::git::GitManager;
-use crate::cache::Cache;
 use crate::models::CommitInfo;
 
 fn main() -> Result<()> {
@@ -31,7 +29,7 @@ fn main() -> Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend).context("Failed to create terminal")?;
 
-    // Initialize Git manager and cache
+    // Initialize Git manager
     let current_dir = std::env::current_dir().context("Failed to get current directory")?;
     
     // Check if we're in a Git repository
@@ -47,8 +45,6 @@ fn main() -> Result<()> {
             return Ok(());
         }
     };
-    
-    let mut cache = Cache::new();
     
     // Get current branch
     let branches = match git_manager.get_branches() {
