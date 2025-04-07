@@ -16,6 +16,7 @@ use ratatui::{
 use std::io;
 use std::path::PathBuf;
 use std::collections::VecDeque;
+use std::time::{Duration, Instant};
 use crate::ui::App;
 use crate::git::GitManager;
 use crate::cache::Cache;
@@ -110,27 +111,71 @@ fn main() -> Result<()> {
         search_query: String::new(),
         show_author_filter: false,
         show_branch_selector: false,
+        branch_selector_index: 0,
     };
 
     // Main loop
+    let mut last_tick = Instant::now();
+    let tick_rate = Duration::from_millis(250);
+
     loop {
         terminal.draw(|f| ui::draw_ui(f, &app)).context("Failed to draw UI")?;
 
-        // Handle input
-        if event::poll(std::time::Duration::from_millis(100)).context("Failed to poll for events")? {
+        let timeout = tick_rate
+            .checked_sub(last_tick.elapsed())
+            .unwrap_or_else(|| Duration::from_secs(0));
+
+        if event::poll(timeout).context("Failed to poll for events")? {
             if let Event::Key(key) = event::read().context("Failed to read event")? {
                 match key.code {
                     KeyCode::Char('q') => break,
                     KeyCode::Char('a') => app.toggle_author_filter(),
                     KeyCode::Char('b') => app.toggle_branch_selector(),
                     KeyCode::Char('/') => app.start_search(),
-                    KeyCode::Up => app.navigate_up(),
-                    KeyCode::Down => app.navigate_down(),
+                    KeyCode::Up => {
+                        if app.show_branch_selector {
+                            app.navigate_branch_selector(-1);
+                        } else {
+                            app.navigate_up();
+                        }
+                    },
+                    KeyCode::Down => {
+                        if app.show_branch_selector {
+                            app.navigate_branch_selector(1);
+                        } else {
+                            app.navigate_down();
+                        }
+                    },
                     KeyCode::Left => app.navigate_left(),
                     KeyCode::Right => app.navigate_right(),
+                    KeyCode::Enter => {
+                        if app.show_branch_selector {
+                            if app.select_branch(app.branch_selector_index) {
+                                // Update commits for the new branch
+                                match git_manager.get_commits(&app.current_branch) {
+                                    Ok(new_commits) => {
+                                        app.commits = VecDeque::from(new_commits);
+                                        app.selected_index = 0;
+                                    },
+                                    Err(e) => {
+                                        println!("Error: Failed to get commits for branch {}: {}", app.current_branch, e);
+                                    }
+                                }
+                                app.show_branch_selector = false;
+                            }
+                        }
+                    },
+                    KeyCode::Esc => {
+                        app.show_branch_selector = false;
+                        app.show_author_filter = false;
+                    },
                     _ => {}
                 }
             }
+        }
+
+        if last_tick.elapsed() >= tick_rate {
+            last_tick = Instant::now();
         }
     }
 
