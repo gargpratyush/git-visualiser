@@ -30,7 +30,6 @@ fn main() -> Result<()> {
     // Initialize Git manager
     let current_dir = std::env::current_dir().context("Failed to get current directory")?;
     
-    // Check if we're in a Git repository
     if !current_dir.join(".git").exists() {
         println!("Error: Not a Git repository. Please run this application from a Git repository.");
         return Ok(());
@@ -117,7 +116,7 @@ fn main() -> Result<()> {
                         if app.show_branch_selector {
                             app.navigate_branch_selector(-1);
                         } else if app.show_author_filter {
-                            // Author filter navigation (not implemented yet)
+                            // To-do
                         } else {
                             // Simply navigate to the previous commit
                             app.navigate_up();
@@ -127,7 +126,7 @@ fn main() -> Result<()> {
                         if app.show_branch_selector {
                             app.navigate_branch_selector(1);
                         } else if app.show_author_filter {
-                            // Author filter navigation (not implemented yet)
+                            // To-do
                         } else {
                             // Simply navigate to the next commit
                             app.navigate_down();

@@ -8,8 +8,6 @@ pub struct GitManager {
     repo: Repository,
 }
 
-// added a comment
-
 impl GitManager {
     pub fn new(path: &Path) -> Result<Self> {
         let repo = Repository::open(path)?;
