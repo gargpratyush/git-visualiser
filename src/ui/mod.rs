@@ -230,153 +230,96 @@ fn draw_commit_details(f: &mut Frame, app: &App, area: Rect) {
         ];
 
         if let Some(diff) = &commit.diff {
-            // DEBUG: Print the raw diff to understand its format
-            // println!("DEBUG RAW DIFF:\n{}", diff);
-
-            // Parse the diff to extract file names and change statistics
+            // Simplified approach - just extract file names from diff
             let mut current_file = String::new();
             let mut old_file = String::new();
-            let mut insertions = 0;
-            let mut deletions = 0;
-            let mut file_changes = Vec::new();
             let mut is_rename = false;
-            let mut similarity_index = 0;
-            let mut is_in_hunk = false;
-            let mut has_content_change = false;
+            let mut is_new_file = false;
+            let mut is_deleted_file = false;
+            let mut file_changes = Vec::new();
             
-            let mut lines_iter = diff.lines().peekable();
-            
-            while let Some(line) = lines_iter.next() {
+            // Process each line in the diff to extract changed files
+            for line in diff.lines() {
                 if line.starts_with("diff --git") {
-                    // Save previous file stats if we have them
+                    // Save previous file info
                     if !current_file.is_empty() {
-                        let change_type = if is_rename {
-                            if similarity_index == 100 {
-                                "renamed"
-                            } else {
-                                "renamed+modified"
-                            }
-                        } else if insertions > 0 || deletions > 0 || has_content_change {
-                            "modified"
+                        let file_type = if is_new_file {
+                            "added"
+                        } else if is_deleted_file {
+                            "deleted"
+                        } else if is_rename {
+                            "renamed"
                         } else {
-                            "unchanged"
+                            "modified"
                         };
                         
-                        file_changes.push((current_file.clone(), old_file.clone(), insertions, deletions, change_type.to_string()));
-                        current_file.clear();
-                        old_file.clear();
-                        insertions = 0;
-                        deletions = 0;
-                        is_rename = false;
-                        is_in_hunk = false;
-                        similarity_index = 0;
-                        has_content_change = false;
+                        file_changes.push((current_file.clone(), old_file.clone(), file_type.to_string()));
                     }
                     
-                    // Extract the file names from diff --git a/old b/new
-                    let parts: Vec<&str> = line.split(" ").collect();
+                    // Reset for new file
+                    current_file = String::new();
+                    old_file = String::new();
+                    is_rename = false;
+                    is_new_file = false;
+                    is_deleted_file = false;
+                    
+                    // Extract file names from diff header
+                    let parts: Vec<&str> = line.split(' ').collect();
                     if parts.len() >= 4 {
                         old_file = parts[2].trim_start_matches("a/").to_string();
                         current_file = parts[3].trim_start_matches("b/").to_string();
                     }
-                    
-                    // Look ahead for rename markers
-                    let mut peek_iter = lines_iter.clone();
-                    while let Some(peek_line) = peek_iter.next() {
-                        if peek_line.starts_with("similarity index ") {
-                            // Extract similarity percentage
-                            if let Some(percent_str) = peek_line.strip_prefix("similarity index ") {
-                                if percent_str.ends_with('%') {
-                                    if let Ok(percent) = percent_str.trim_end_matches('%').parse::<usize>() {
-                                        similarity_index = percent;
-                                    }
-                                }
-                            }
-                        } else if peek_line.starts_with("rename from") || peek_line.starts_with("rename to") {
-                            is_rename = true;
-                        } else if peek_line.starts_with("--- ") || peek_line.starts_with("+++ ") {
-                            has_content_change = true;
-                        } else if peek_line.starts_with("@@") {
-                            has_content_change = true;
-                            break;
-                        } else if peek_line.starts_with("diff --git") {
-                            // Reached next file
-                            break;
-                        }
-                    }
-                    
-                } else if line.starts_with("similarity index ") {
-                    // Extract similarity percentage
-                    if let Some(percent_str) = line.strip_prefix("similarity index ") {
-                        if percent_str.ends_with('%') {
-                            if let Ok(percent) = percent_str.trim_end_matches('%').parse::<usize>() {
-                                similarity_index = percent;
-                            }
-                        }
-                    }
-                } else if line.starts_with("rename from") {
+                }
+                else if line.starts_with("new file mode") {
+                    is_new_file = true;
+                }
+                else if line.starts_with("deleted file mode") {
+                    is_deleted_file = true;
+                }
+                else if line.starts_with("rename from") {
                     is_rename = true;
                     old_file = line.trim_start_matches("rename from ").to_string();
-                } else if line.starts_with("rename to") {
+                }
+                else if line.starts_with("rename to") {
                     is_rename = true;
                     current_file = line.trim_start_matches("rename to ").to_string();
-                } else if line.starts_with("--- ") || line.starts_with("+++ ") {
-                    has_content_change = true;
-                } else if line.starts_with("@@") {
-                    is_in_hunk = true;
-                    has_content_change = true;
-                    // Hunk header - continue to process the content
-                    continue;
-                } else if is_in_hunk && line.starts_with("+") && !line.starts_with("+++") {
-                    insertions += 1;
-                } else if is_in_hunk && line.starts_with("-") && !line.starts_with("---") {
-                    deletions += 1;
                 }
             }
             
-            // Add the last file's stats
+            // Add the last file
             if !current_file.is_empty() {
-                let change_type = if is_rename {
-                    if similarity_index == 100 {
-                        "renamed"
-                    } else {
-                        "renamed+modified"
-                    }
-                } else if insertions > 0 || deletions > 0 || has_content_change {
-                    "modified"
+                let file_type = if is_new_file {
+                    "added"
+                } else if is_deleted_file {
+                    "deleted"
+                } else if is_rename {
+                    "renamed"
                 } else {
-                    "unchanged"
+                    "modified"
                 };
                 
-                file_changes.push((current_file, old_file, insertions, deletions, change_type.to_string()));
+                file_changes.push((current_file, old_file, file_type.to_string()));
             }
             
-            // If we couldn't parse the diff properly, show a message
+            // Display the files and their changes
             if file_changes.is_empty() {
                 lines.push("No files changed".to_string());
             } else {
-                // Add each file with its change statistics
-                for (new_file, old_file, ins, del, change_type) in file_changes {
+                for (file, old_path, change_type) in &file_changes {
+                    // Format the status based on change type
                     let status = match change_type.as_str() {
-                        "renamed" => format!("renamed {} →", old_file),
-                        "renamed+modified" => format!("renamed+mod {} →", old_file),
-                        "modified" => "modified".to_string(),
-                        _ => "unchanged".to_string(),
+                        "added" => "added".to_string(),
+                        "deleted" => "deleted".to_string(),
+                        "renamed" => format!("renamed {} →", old_path),
+                        _ => "modified".to_string(),
                     };
                     
-                    // Show proper line change counts for each type
-                    let changes = if change_type == "renamed" && ins == 0 && del == 0 {
-                        "(renamed only)".to_string()
-                    } else {
-                        format!("(+{}, -{})", ins, del)
-                    };
-                    
-                    lines.push(format!("{:<30} {:<40} {}", 
-                        status,
-                        new_file,
-                        changes
-                    ));
+                    lines.push(format!("{:<30} {}", status, file));
                 }
+                
+                // Add a summary line with just the count of files
+                lines.push(String::new());
+                lines.push(format!("Total: {} files changed", file_changes.len()));
             }
         } else {
             lines.push("No diff available".to_string());
@@ -391,19 +334,4 @@ fn draw_commit_details(f: &mut Frame, app: &App, area: Rect) {
         .block(Block::default().title("Details").borders(Borders::ALL));
 
     f.render_widget(paragraph, area);
-}
-
-fn parse_range(range: &str) -> (usize, usize) {
-    let parts: Vec<&str> = range.split(',').collect();
-    match parts.as_slice() {
-        [start, len] => (
-            start.parse().unwrap_or(0),
-            len.parse().unwrap_or(0)
-        ),
-        [single] => (
-            single.parse().unwrap_or(0),
-            1
-        ),
-        _ => (0, 0)
-    }
 } 
