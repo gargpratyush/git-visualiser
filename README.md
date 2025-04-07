@@ -1,17 +1,19 @@
 # Git Visualizer
 
-A terminal-based Git repository visualizer with a beautiful TUI interface. View and navigate through your Git history with ease.
+Better than git log.
+I am not a fan of the user-interface of the command git-log. For people like us who like to live inside the terminal, `git log` makes us have second thoughts. Hence, I created Git Visualiser, a better TUI so that we don't need to use git log command anymore.
 
 ## Features
 
-- 📊 Timeline view of commits with detailed information
-- 👤 Author filtering (press 'a' to filter by author)
-- 🌳 Branch selector (press 'b' to switch between branches)
-- 🔍 Diff viewer for selected commits
-- ⚡ Fast navigation with arrow keys
-- 🔎 Quick search with '/' key
-- 💾 Efficient caching system
-- 🎨 Clean and modern TUI interface
+1. View what has changed in the commit.
+   ![image](https://github.com/user-attachments/assets/6914d43f-7b82-465a-b8d1-3423f4fec595)
+
+2. Also tells you if the file has been added/deleted or modified.
+   ![image](https://github.com/user-attachments/assets/0caa0061-1fe9-4fd0-b8d7-87b4864875ef)
+
+3. Navigate between different branches (press `b`).
+   ![image](https://github.com/user-attachments/assets/9021dc26-1f2d-41ca-930c-11094e8f197b)
+
 
 ## Installation
 
@@ -28,23 +30,21 @@ A terminal-based Git repository visualizer with a beautiful TUI interface. View 
 
 ## Usage
 
-1. Navigate to a Git repository:
+1. Navigate to a Git repository where you want to view commit history:
    ```bash
    cd /path/to/your/repo
    ```
 
 2. Run the visualizer:
    ```bash
-   git-visualiser
+   ./{path-to-git-visualiser-repository}/target/release/git-visualiser
    ```
 
 ### Keyboard Shortcuts
 
 - `↑/↓`: Navigate through commits
-- `←/→`: Navigate between panels
 - `a`: Toggle author filter
 - `b`: Toggle branch selector
-- `/`: Start search
 - `q`: Quit
 
 ## Dependencies
@@ -58,7 +58,3 @@ A terminal-based Git repository visualizer with a beautiful TUI interface. View 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details. 
